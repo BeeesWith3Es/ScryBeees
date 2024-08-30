@@ -73,7 +73,7 @@ botClient.on('ready', (client)=>{
                 const imageOnly = imageOnlySelected(query);
                 query.trim();
 
-                console.log(`----------------\nSEARCH ACTION:\nUSER: ${userMessage.author.username}:${userMessage.author.id}\nQUERY: ${query}----------------\n`)
+                console.log(`----------------\nSEARCH ACTION:\nUSER: ${userMessage.author.username}:${userMessage.author.id}\nQUERY: ${query}\n----------------\n`)
                 searchAction(userMessage, query, imageOnly, scrybConfig);
             }
         
