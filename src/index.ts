@@ -44,6 +44,7 @@ const botClient = new Client({
 botClient.on('ready', (client)=>{
     console.log(`Ready at ${new Date(client.readyTimestamp)}`);
     emotes = Array.from(client.emojis.valueOf().values());
+    scrybConfig.emotes = emotes;
     const faeFrog = emotes.find((emote)=>emote.name === "FaeFrog");
     console.log(`Emoji Loaded at ${new Date()} <:${faeFrog.name}:${faeFrog.id}>`);
 })

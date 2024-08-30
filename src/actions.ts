@@ -134,12 +134,12 @@ const searchAction = async (message: Message<boolean>, query: string, imageOnly:
             interaction.message.delete();
         })
     }catch(error){
-        const faeFrog = config.emotes.find((emote)=>emote.name === "FaeFrog");
+        const faeFrog = config.emotes.find((emote)=>emote?.name === "FaeFrog");
         if(error.status === 404){
-            message.reply(`<:${faeFrog.name}:${faeFrog.id}>\nYour query didn’t match any cards. Adjust your search terms or refer to the syntax guide at <https://scryfall.com/docs/reference>`);
+            message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nYour query didn’t match any cards. Adjust your search terms or refer to the syntax guide at <https://scryfall.com/docs/reference>`);
         }else{
             console.log("Error during message received\n", error, '\nMessage:\n', message);
-            message.reply(`<:${faeFrog.name}:${faeFrog.id}>\nThere was an error in processing your request: "${error.response.data.details}"\nBut I did not crash, try again!`);
+            message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nThere was an error in processing your request: "${error.response.data.details}"\nBut I did not crash, try again!`);
         }
     }finally{
         waitingMessage.delete();
