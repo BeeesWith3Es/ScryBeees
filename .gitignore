@@ -1,2 +1,4 @@
-./dist
 .env
+/dist/
+/node_modules
+/.idea
