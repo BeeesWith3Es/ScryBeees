@@ -10,7 +10,23 @@ dotenv.config();
 
 const keyPhrase = process.env.KEY_PHRASE;
 const addEmojiPhrase = 'add ';
-const helpPhrase = process.env.HELP_PHRASE;
+const helpOption = process.env.HELP_OPTION;
+const imageOption = process.env.IMAGE_OPTION;
+const extendedOption = process.env.EXTENDED_OPTION;
+
+const privateDelimiter = '(';
+const publicDelimiter = '<';
+
+const options = [helpOption, imageOption, extendedOption].join('');
+console.log(options);
+
+const commandRegex = new RegExp(`([<(])${keyPhrase}([ \s${options}])(.*?)[)>]`, 'gmi');
+
+interface Command {
+    queryOption: string;
+    query: string;
+    privateSelect: boolean;
+}
  
 let emotes: GuildEmoji[] = [];
 const manaServerName = 'TheManaBase'
@@ -22,6 +38,9 @@ const scrybConfig = {
     scryfallApiUrl: 'https://api.scryfall.com/cards/search',
     botColor: 0xFFFC30,
     emotes,
+    helpOption,
+    imageOption,
+    extendedOption,
     getManaEmoji: () => {
         if(!manaEmoji)
         manaEmoji = emotes.filter((val)=>val.guild.name === manaServerName || val.guild.name === manaServerName2);
@@ -54,7 +73,21 @@ botClient.on('ready', (client)=>{
                 return;
             }
 
-            if(userMessage.content.toLowerCase().startsWith(helpPhrase)){
+            const commandCaptures = [];
+            let regexResult = commandRegex.exec(userMessage.content);
+            while(regexResult != null){
+                commandCaptures.push(regexResult);
+                regexResult = commandRegex.exec(userMessage.content);
+            }
+
+            const commands = commandCaptures.map((capture)=>({
+                privateSelect: capture[1] === privateDelimiter,
+                queryOption: capture[2],
+                query: capture[3].trim()
+            } as Command));
+
+            console.log(commands);
+            if(commands.length === 1 && commands[0].queryOption === helpOption){
                 console.log(`${userMessage.author.username}:${userMessage.author.id} asked for help`)
                 helpAction(userMessage, scrybConfig);
                 return;
@@ -62,21 +95,17 @@ botClient.on('ready', (client)=>{
 
 
             
-            if(userMessage.content.toLowerCase().startsWith(keyPhrase)){
-                const imageOnlySelected = (q: string) => {
-                    if(q.startsWith('!')) {
-                        q.replace('!', '');
-                        return true;
-                    }
-                    return false;
-                }
-                const query = userMessage.content.toLowerCase().replace(keyPhrase, '');
-                const imageOnly = imageOnlySelected(query);
-                query.trim();
 
-                console.log(`----------------\nSEARCH ACTION:\nUSER: ${userMessage.author.username}:${userMessage.author.id}\nQUERY: ${query}\n----------------\n`)
-                searchAction(userMessage, query, imageOnly, scrybConfig);
-            }
+
+                commands.forEach((command)=>{
+                    if(command.queryOption !== helpOption){
+                        console.log(`----------------SEARCH ACTION:----------------\nUSER: ${userMessage.author.username}:${userMessage.author.id}\nQUERY: ${command.query}`)
+                        searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
+                        console.log(`--------------------------------\n`)
+                    }
+                })
+
+
         
             // if(message.content.toLowerCase().startsWith(addEmojiPhrase)){
             //     try{

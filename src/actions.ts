@@ -17,16 +17,19 @@ const helpAction = (message: Message<boolean>, config) => {
 
 
 
-const searchAction = async (message: Message<boolean>, query: string, imageOnly: boolean, config) => {
+const searchAction = async (message: Message<boolean>, options) => {
     let embeds: EmbedBuilder[];
     let components: ActionRowBuilder<StringSelectMenuBuilder>[];
     let selectCards: Card[];
+    const {queryOption, query, privateSelect} = options;
+
+    const imageOnly = queryOption === options.imageOption;
 
     const processSearchResponse = (cards: CardList, limit = 15): {cardEmbed?: EmbedBuilder[], cardActions?: ActionRowBuilder<StringSelectMenuBuilder>[], cards?: Card[]} => {
         const totalCards = cards.total_cards ?? cards.data.length;
 
         const cardEmbed = new EmbedBuilder()
-            .setColor(config.botColor)
+            .setColor(options.botColor)
             .setTitle('Results: ')
             .setDescription(`${totalCards} card${totalCards === 1 ? '' : 's'} found`);
 
@@ -54,7 +57,7 @@ const searchAction = async (message: Message<boolean>, query: string, imageOnly:
             const card = cards.data[i]
             selectOptions.push(createOption(`${card.name} | ${card.set.toUpperCase()}`, `${card.type_line} ${getCardStats(card)}`, `${i}`))
 
-            fields.push({name: `${card.name} | ${card.set.toUpperCase()}`, value: `${card.type_line}\n${getCardManaCost(card, config.getManaEmoji())}\n${getCardStats(card)}`, inline: true})
+            fields.push({name: `${card.name} | ${card.set.toUpperCase()}`, value: `${card.type_line}\n${getCardManaCost(card, options.getManaEmoji())}\n${getCardStats(card)}`, inline: true})
         }
 
         cardEmbed.addFields(...fields);
@@ -81,7 +84,7 @@ const searchAction = async (message: Message<boolean>, query: string, imageOnly:
 
     const waitingMessage = await message.reply('Looking...');
     try{
-        const response: AxiosResponse<CardList, any> = await axios.get(config.scryfallApiUrl, {params: {q: query}})
+        const response: AxiosResponse<CardList, any> = await axios.get(options.scryfallApiUrl, {params: {q: query}})
 
         if(response.data.data.length === 1){
             if(imageOnly){
@@ -98,20 +101,20 @@ const searchAction = async (message: Message<boolean>, query: string, imageOnly:
         selectCards = cards;
 
 
-        const reply = await message.reply({ embeds, components});
+        const reply = privateSelect ? await message.author.send({embeds, components}) : await message.reply({ embeds, components});
         const collector = reply.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === message.author.id,
-            time: config.selectTimeOut,
+            time: options.selectTimeOut,
             dispose: true
         })
         const selectTimeout = setTimeout(async ()=>{
             try{
-                await reply.edit({content: 'Search Expired', embeds: [], components: []});
+                await reply.edit({content: 'Search Expired', components: []});
             }catch(error){
                 console.log(error.code);
             }
-        }, config.selectTimeOut)
+        }, options.selectTimeOut)
         collector.on('collect', async (interaction)=> {
             if(!selectCards) return;
 
@@ -134,7 +137,7 @@ const searchAction = async (message: Message<boolean>, query: string, imageOnly:
             interaction.message.delete();
         })
     }catch(error){
-        const faeFrog = config.emotes.find((emote)=>emote?.name === "FaeFrog");
+        const faeFrog = options.emotes.find((emote)=>emote?.name === "FaeFrog");
         if(error.status === 404){
             message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nYour query didn’t match any cards. Adjust your search terms or refer to the syntax guide at <https://scryfall.com/docs/reference>`);
         }else{
