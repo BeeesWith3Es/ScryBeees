@@ -87,7 +87,11 @@ const searchAction = async (message: Message<boolean>, options) => {
 
         if(response.data.data.length === 1){
             if(imageOnly){
-                message.reply({content: `Match Found:`, files: [ response.data.data[0].image_uris.large]});
+                if(response.data.data[0].card_faces){
+                    message.reply({content: 'Working on double faced stuff still soz', files: [ "https://errors.scryfall.com/missing.jpg"]} )
+                    return;
+                }
+                message.reply({content: `Match Found:`, files: [ response.data.data[0]?.image_uris?.large]});
             }else {
                 message.reply(`Match Found: ${ response.data.data[0].scryfall_uri}`);
             }
@@ -121,7 +125,10 @@ const searchAction = async (message: Message<boolean>, options) => {
                 .filter((val)=>(!Number.isNaN(Number(val))))
                 .map((val)=>{
                     const card = selectCards[Number(val)];
-                    if(imageOnly) return card.image_uris.large ?? "NO IMAGE";
+                    if(card.card_faces) {
+                        return 'https://errors.scryfall.com/missing.jpg';
+                    }
+                    if(imageOnly) return card.image_uris.large ?? "https://errors.scryfall.com/missing.jpg";
                     return card.scryfall_uri;
                 });
 
