@@ -55,9 +55,8 @@ const searchAction = async (message: Message<boolean>, options) => {
         const fields: APIEmbedField[] = [];
         for(let i=0; i<(limit > cards.data.length ? cards.data.length : limit) ; i++){
             const card = cards.data[i]
-            selectOptions.push(createOption(`${card.name} | ${card.set.toUpperCase()}`, `${card.type_line} ${getCardStats(card)}`, `${i}`))
-
             fields.push({name: `${card.name} | ${card.set.toUpperCase()}`, value: `${card.type_line}\n${getCardManaCost(card, options.getManaEmoji())}\n${getCardStats(card)}`, inline: true})
+            selectOptions.push(createOption(`${card.name} | ${card.set.toUpperCase()}`, `${card.type_line} ${getCardStats(card, false)}`, `${i}`))
         }
 
         cardEmbed.addFields(...fields);

@@ -1,10 +1,10 @@
 import { GuildEmoji } from "discord.js";
 import { Card } from "scryfall-api";
 
-const getCardStats = (card: Card): string => {
+const getCardStats = (card: Card, escapeStar = true): string => {
     let stats = '';
     if(card.power && card.toughness){
-        stats = `${card.power === '*' ? '\\*' : card.power}/${card.toughness === '*' ? '\\*' : card.toughness}`
+        stats = `${card.power === '*' && escapeStar ? '\\*' : card.power}/${card.toughness === '*' && escapeStar ? '\\*' : card.toughness}`
     }
     return stats;
 }

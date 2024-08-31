@@ -14,13 +14,12 @@ const helpOption = process.env.HELP_OPTION;
 const imageOption = process.env.IMAGE_OPTION;
 const extendedOption = process.env.EXTENDED_OPTION;
 
-const privateDelimiter = '(';
-const publicDelimiter = '<';
+const privateDelimiter = '((';
+const publicDelimiter = '<<';
 
 const options = [helpOption, imageOption, extendedOption].join('');
-console.log(options);
-
-const commandRegex = new RegExp(`([<(])${keyPhrase}([ \s${options}])(.*?)[)>]`, 'gmi');
+console.log(`Loaded Options: ${options}`);
+const commandRegex = new RegExp(`(<{2}|\\({2})${keyPhrase}([ \s${options}])(.*?)(>{2}|\\){2})`, 'gmi');
 
 interface Command {
     queryOption: string;
@@ -34,7 +33,7 @@ const manaServerName2 = 'TheManaBase2'
 let manaEmoji;
 
 const scrybConfig = {
-    selectTimeOut: 30_000,
+    selectTimeOut: 120_000,
     scryfallApiUrl: 'https://api.scryfall.com/cards/search',
     botColor: 0xFFFC30,
     emotes,
@@ -86,7 +85,6 @@ botClient.on('ready', (client)=>{
                 query: capture[3].trim()
             } as Command));
 
-            console.log(commands);
             if(commands.length === 1 && commands[0].queryOption === helpOption){
                 console.log(`${userMessage.author.username}:${userMessage.author.id} asked for help`)
                 helpAction(userMessage, scrybConfig);
@@ -99,9 +97,14 @@ botClient.on('ready', (client)=>{
 
                 commands.forEach((command)=>{
                     if(command.queryOption !== helpOption){
-                        console.log(`----------------SEARCH ACTION:----------------\nUSER: ${userMessage.author.username}:${userMessage.author.id}\nQUERY: ${command.query}`)
+                        console.log(`----------------SEARCH ACTION:----------------`)
+                        console.log(`${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} Eastern`)
+                        console.log(`USER: ${userMessage.author.username}:${userMessage.author.id}`)
+                        console.log(`SERVER: ${userMessage.guild.name}:${userMessage.guild.id}`)
+                        console.log(`QUERY: ${command.query}`)
+                        console.log(`OPTION(PRIVATE?): ${command.queryOption}(${command.privateSelect})`)
                         searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
-                        console.log(`--------------------------------\n`)
+                        console.log(`----------------------------------------------\n`)
                     }
                 })
 
