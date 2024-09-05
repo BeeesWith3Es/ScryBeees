@@ -70,7 +70,7 @@ export const searchAction = async (message: Message<boolean>, options) => {
         const cardSelect = new StringSelectMenuBuilder()
             .setCustomId(message.id)
             .setMinValues(1)
-            .setMaxValues(9)
+            .setMaxValues(selectOptions.length<=9 ? selectOptions.length: 9)
             .setPlaceholder('Select Card to get details')
             .addOptions(selectOptions.map((option)=>{
                 return new StringSelectMenuOptionBuilder()
