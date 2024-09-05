@@ -8,7 +8,7 @@ import {helpAction, searchAction} from "./actions.js";
 
 dotenv.config();
 
-const keyPhrase = process.env.KEY_PHRASE;
+const keyPhrase = process.env.KEY_PHRASE ?? '';
 const addEmojiPhrase = 'add ';
 const helpOption = process.env.HELP_OPTION;
 const imageOption = process.env.IMAGE_OPTION;
@@ -34,7 +34,8 @@ let manaEmoji;
 
 const scrybConfig = {
     selectTimeOut: 120_000,
-    scryfallApiUrl: 'https://api.scryfall.com/cards/search',
+    scryfallApiCardSearchUrl: 'https://api.scryfall.com/cards/search',
+    scryfallGetCardTextUrl: (cardId) => `https://api.scryfall.com/cards/${cardId}?format=text&pretty=true`,
     botColor: 0xFFFC30,
     emotes,
     helpOption,
@@ -42,7 +43,9 @@ const scrybConfig = {
     extendedOption,
     getManaEmoji: () => {
         if(!manaEmoji)
-        manaEmoji = emotes.filter((val)=>val.guild.name === manaServerName || val.guild.name === manaServerName2);
+        manaEmoji = Object.fromEntries(emotes
+            .filter((val)=>val.guild.name === manaServerName || val.guild.name === manaServerName2)
+            .map((val)=>([val.name, val.id])));
         return manaEmoji;
     }
 }
@@ -65,6 +68,7 @@ botClient.on('ready', (client)=>{
     scrybConfig.emotes = emotes;
     const faeFrog = emotes.find((emote)=>emote.name === "FaeFrog");
     console.log(`Emoji Loaded at ${new Date()} <:${faeFrog.name}:${faeFrog.id}>`);
+    console.log('Mana Emoji Loaded: ', Object.keys(scrybConfig.getManaEmoji())?.length);
 })
     botClient.on('messageCreate', async (userMessage)=>{
         try{

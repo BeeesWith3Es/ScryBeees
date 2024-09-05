@@ -4,20 +4,27 @@ import {
     ComponentType,
     EmbedBuilder,
     Message,
-    StringSelectMenuBuilder, StringSelectMenuOptionBuilder
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder
 } from "discord.js";
 import {Card} from "scryfall-api";
 import axios, {AxiosResponse} from "axios";
 import {CardList} from "./List.js";
-import {getCardManaCost, getCardStats} from "./card-helpers.js";
+import {faceDelimiter, getCardManaCost, getCardOracleText, getCardStats, insertManaSymbols} from "./card-helpers.js";
 
-const helpAction = (message: Message<boolean>, config) => {
+interface SearchResponseData{
+    cardEmbeds?: EmbedBuilder[];
+    cardActions?: ActionRowBuilder<StringSelectMenuBuilder>[];
+    cards?: Card[]
+}
+
+const missingImageUrl = "https://errors.scryfall.com/missing.jpg"
+
+export const helpAction = (message: Message<boolean>, config) => {
     message.reply(`Search scryfall by typing "scryb " followed by any valid scryfall search syntax, which defaults to searching card names.\nFind the syntax here: https://scryfall.com/docs/syntax.\n"scryb! " will return a full art response rather than an embed.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds.`);
 }
 
-
-
-const searchAction = async (message: Message<boolean>, options) => {
+export const searchAction = async (message: Message<boolean>, options) => {
     let embeds: EmbedBuilder[];
     let components: ActionRowBuilder<StringSelectMenuBuilder>[];
     let selectCards: Card[];
@@ -25,7 +32,7 @@ const searchAction = async (message: Message<boolean>, options) => {
 
     const imageOnly = queryOption === options.imageOption;
 
-    const processSearchResponse = (cards: CardList, limit = 15): {cardEmbed?: EmbedBuilder[], cardActions?: ActionRowBuilder<StringSelectMenuBuilder>[], cards?: Card[]} => {
+    const processSearchResponse = (cards: CardList, limit = 15): SearchResponseData => {
         const totalCards = cards.total_cards ?? cards.data.length;
 
         const cardEmbed = new EmbedBuilder()
@@ -34,11 +41,11 @@ const searchAction = async (message: Message<boolean>, options) => {
             .setDescription(`${totalCards} card${totalCards === 1 ? '' : 's'} found`);
 
         if(totalCards === 0){
-            return {cardEmbed: [cardEmbed]};
+            return {cardEmbeds: [cardEmbed]};
         }
 
         if(totalCards === 1){
-            return {cardEmbed: [cardEmbed.setTitle('Card Found').setDescription(null).setImage(cards.data[0].image_uris.normal)]}
+            return {cardEmbeds: [cardEmbed.setTitle('Card Found').setDescription(null).setImage(cards.data[0].image_uris.normal)]}
         }
 
         const selectOptions = []
@@ -55,15 +62,15 @@ const searchAction = async (message: Message<boolean>, options) => {
         const fields: APIEmbedField[] = [];
         for(let i=0; i<(limit > cards.data.length ? cards.data.length : limit) ; i++){
             const card = cards.data[i]
-            fields.push({name: `${card.name} | ${card.set.toUpperCase()}`, value: `${card.type_line}\n${getCardManaCost(card, options.getManaEmoji())}\n${getCardStats(card)}`, inline: true})
-            selectOptions.push(createOption(`${card.name} | ${card.set.toUpperCase()}`, `${card.type_line} ${getCardStats(card, false)}`, `${i}`))
+            fields.push({name: `${card.name.replace(/\/\//, faceDelimiter)} | ${card.set.toUpperCase()}`, value: `${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardManaCost(card, options.getManaEmoji())}\n${getCardStats(card)}`, inline: true})
+            selectOptions.push(createOption(`${card.name.replace(/\/\//, faceDelimiter)} | ${card.set.toUpperCase()}`, `${card.type_line.replace(/\/\//, faceDelimiter)} ${getCardStats(card, false)}`, `${i}`))
         }
 
         cardEmbed.addFields(...fields);
         const cardSelect = new StringSelectMenuBuilder()
-            .setCustomId('0')
+            .setCustomId(message.id)
             .setMinValues(1)
-            .setMaxValues(selectOptions.length)
+            .setMaxValues(9)
             .setPlaceholder('Select Card to get details')
             .addOptions(selectOptions.map((option)=>{
                 return new StringSelectMenuOptionBuilder()
@@ -75,31 +82,44 @@ const searchAction = async (message: Message<boolean>, options) => {
         const cardActions = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(cardSelect);
 
         return {
-            cardEmbed: [cardEmbed],
+            cardEmbeds: [cardEmbed],
             cardActions: [cardActions],
             cards: cards.data.slice(0, limit > cards.data.length ? cards.data.length : limit)
         };
     }
 
+    const getCardImageOrFaces = (card: Card): string[] => {
+        if(card.image_status === "missing") return [missingImageUrl];
+        if(card.card_faces && card.card_faces.length >=1) return card.card_faces.map((face)=>face?.image_uris?.large ?? missingImageUrl);
+        return [card?.image_uris?.large ?? missingImageUrl];
+    }
+
+    const createCardDetailEmbed = (card: Card): EmbedBuilder => {
+        const description = `${card.type_line.replace(/\/\//, faceDelimiter)}\n\n${getCardOracleText(card, options.getManaEmoji())}\n\n${getCardStats(card)}`
+        console.log(getCardStats(card));
+        return new EmbedBuilder()
+            .setColor(options.botColor)
+            .setTitle(`${card.name.replace(/\/\//, faceDelimiter)} — ${getCardManaCost(card, options.getManaEmoji())}`)
+            .setDescription(description)
+            .setThumbnail(getCardImageOrFaces(card)[0]);
+    }
+
     const waitingMessage = await message.reply('Looking...');
     try{
-        const response: AxiosResponse<CardList, any> = await axios.get(options.scryfallApiUrl, {params: {q: query}})
+        const response: AxiosResponse<CardList, any> = await axios.get(options.scryfallApiCardSearchUrl, {params: {q: query}})
 
         if(response.data.data.length === 1){
+            const card = response.data.data[0];
             if(imageOnly){
-                if(response.data.data[0].card_faces){
-                    message.reply({content: 'Working on double faced stuff still soz', files: [ "https://errors.scryfall.com/missing.jpg"]} )
-                    return;
-                }
-                message.reply({content: `Match Found:`, files: [ response.data.data[0]?.image_uris?.large]});
+                message.reply({content: `Match Found:`, files: getCardImageOrFaces(card)});
             }else {
-                message.reply(`Match Found: ${ response.data.data[0].scryfall_uri}`);
+                message.reply({content: `Match Found: \n${'<'+card.scryfall_uri+'>'}`, embeds: [createCardDetailEmbed(card)]});
             }
             return;
         }
 
-        const {cardEmbed, cardActions, cards} = processSearchResponse(response.data);
-        embeds = cardEmbed;
+        const {cardEmbeds, cardActions, cards} = processSearchResponse(response.data);
+        embeds = cardEmbeds;
         components = cardActions
         selectCards = cards;
 
@@ -121,23 +141,18 @@ const searchAction = async (message: Message<boolean>, options) => {
         collector.on('collect', async (interaction)=> {
             if(!selectCards) return;
 
-            const cardUris = interaction.values
+            const selectedCards = interaction.values
                 .filter((val)=>(!Number.isNaN(Number(val))))
                 .map((val)=>{
-                    const card = selectCards[Number(val)];
-                    if(card.card_faces) {
-                        return 'https://errors.scryfall.com/missing.jpg';
-                    }
-                    if(imageOnly) return card.image_uris.large ?? "https://errors.scryfall.com/missing.jpg";
-                    return card.scryfall_uri;
+                    return selectCards[Number(val)];
                 });
 
             if(imageOnly){
-                const attachments = cardUris
-                    .map((uri)=>({attachment: uri}));
+                const attachments = selectedCards
+                    .map((card)=>({attachment: getCardImageOrFaces(card)[0]}));
                 await message.reply({files: attachments});
             }else {
-                await message.reply({content: `Results:\n${cardUris.reduce((result, next)=>`${result}\n${next}`)}`});
+                await message.reply({content: `Results:`, embeds: selectedCards.map(createCardDetailEmbed)});
             }
             clearTimeout(selectTimeout);
             interaction.message.delete();
@@ -154,5 +169,3 @@ const searchAction = async (message: Message<boolean>, options) => {
         waitingMessage.delete();
     }
 }
-
-export {helpAction, searchAction};
