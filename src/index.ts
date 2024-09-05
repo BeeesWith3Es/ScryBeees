@@ -33,7 +33,7 @@ const manaServerName2 = 'TheManaBase2'
 let manaEmoji;
 
 const scrybConfig = {
-    selectTimeOut: 120_000,
+    selectTimeOut: process.env.TIMEOUT ?? 120_000,
     scryfallApiCardSearchUrl: 'https://api.scryfall.com/cards/search',
     scryfallGetCardTextUrl: (cardId) => `https://api.scryfall.com/cards/${cardId}?format=text&pretty=true`,
     botColor: 0xFFFC30,

@@ -1,20 +1,22 @@
 import {
     ActionRowBuilder,
-    APIEmbedField,
+    APIEmbedField, ButtonBuilder,
     ComponentType,
     EmbedBuilder,
     Message,
     StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    StringSelectMenuOptionBuilder,
+    ButtonStyle, PermissionsBitField
 } from "discord.js";
 import {Card} from "scryfall-api";
 import axios, {AxiosResponse} from "axios";
 import {CardList} from "./List.js";
 import {faceDelimiter, getCardManaCost, getCardOracleText, getCardStats, insertManaSymbols} from "./card-helpers.js";
+import * as repl from "node:repl";
 
 interface SearchResponseData{
     cardEmbeds?: EmbedBuilder[];
-    cardActions?: ActionRowBuilder<StringSelectMenuBuilder>[];
+    cardActions?: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[];
     cards?: Card[]
 }
 
@@ -26,7 +28,7 @@ export const helpAction = (message: Message<boolean>, config) => {
 
 export const searchAction = async (message: Message<boolean>, options) => {
     let embeds: EmbedBuilder[];
-    let components: ActionRowBuilder<StringSelectMenuBuilder>[];
+    let components: ActionRowBuilder<StringSelectMenuBuilder | ButtonBuilder>[];
     let selectCards: Card[];
     const {queryOption, query, privateSelect} = options;
 
@@ -68,7 +70,7 @@ export const searchAction = async (message: Message<boolean>, options) => {
 
         cardEmbed.addFields(...fields);
         const cardSelect = new StringSelectMenuBuilder()
-            .setCustomId(message.id)
+            .setCustomId(`card-select-${message.id}`)
             .setMinValues(1)
             .setMaxValues(selectOptions.length<=9 ? selectOptions.length: 9)
             .setPlaceholder('Select Card to get details')
@@ -78,12 +80,19 @@ export const searchAction = async (message: Message<boolean>, options) => {
                     .setDescription(option.description)
                     .setValue(option.value)
             }))
+        const deleteButton = new ButtonBuilder()
+            .setCustomId(`delete-button-${message.id}`)
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel('Delete')
 
-        const cardActions = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(cardSelect);
+        const cardActions = [
+            new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(cardSelect),
+            new ActionRowBuilder<ButtonBuilder>().addComponents(deleteButton)
+        ];
 
         return {
             cardEmbeds: [cardEmbed],
-            cardActions: [cardActions],
+            cardActions: cardActions,
             cards: cards.data.slice(0, limit > cards.data.length ? cards.data.length : limit)
         };
     }
@@ -125,20 +134,25 @@ export const searchAction = async (message: Message<boolean>, options) => {
 
 
         const reply = privateSelect ? await message.author.send({embeds, components}) : await message.reply({ embeds, components});
-        const collector = reply.createMessageComponentCollector({
+        const selectCollector = reply.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === message.author.id,
             time: options.selectTimeOut,
             dispose: true
+        });
+        const buttonCollector = reply.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            filter: (i) => i.user.id === message.author.id || (i.member.permissions as Readonly<PermissionsBitField>).has(PermissionsBitField.Flags.ManageMessages)
         })
         const selectTimeout = setTimeout(async ()=>{
             try{
-                await reply.edit({content: 'Search Expired', components: []});
+                const deleteComponent = reply.components[1];
+                await reply.edit({content: 'Search Expired', components: [deleteComponent]});
             }catch(error){
                 console.log(error.code);
             }
         }, options.selectTimeOut)
-        collector.on('collect', async (interaction)=> {
+        selectCollector.on('collect', async (interaction)=> {
             if(!selectCards) return;
 
             const selectedCards = interaction.values
@@ -156,7 +170,13 @@ export const searchAction = async (message: Message<boolean>, options) => {
             }
             clearTimeout(selectTimeout);
             interaction.message.delete();
+        });
+        buttonCollector.on('collect', async (interaction) => {
+            if(interaction.customId === `delete-button-${message.id}`){
+                interaction.message.delete();
+            }
         })
+
     }catch(error){
         const faeFrog = options.emotes.find((emote)=>emote?.name === "FaeFrog");
         if(error.status === 404){
