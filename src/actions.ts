@@ -163,7 +163,7 @@ export const searchAction = async (message: Message<boolean>, options) => {
             message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nYour query didn’t match any cards. Adjust your search terms or refer to the syntax guide at <https://scryfall.com/docs/reference>`);
         }else{
             console.log("Error during message received\n", error, '\nMessage:\n', message);
-            message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nThere was an error in processing your request: "${error.response.data.details}"\nBut I did not crash, try again!`);
+            message.reply(`<:${faeFrog?.name}:${faeFrog?.id}>\nThere was an error in processing your request: "${error?.response?.data?.details ?? error?.message}"\nBut I did not crash, try again!`);
         }
     }finally{
         waitingMessage.delete();
