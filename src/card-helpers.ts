@@ -60,7 +60,7 @@ export const getCardOracleText = (card: Card | {oracle_text?: string, card_faces
 export const insertManaSymbols = (manaText: string, manaEmotes: Record<string, string>) => {
 
     return manaText.replace(manaSymbolRegex, (originalText, manaSymbol) => {
-        const emoteName = `mana_${manaSymbol.toLowerCase()}`;
+        const emoteName = `mana_${manaSymbol.toLowerCase().replace('/', '')}`;
         const emoteId = manaEmotes[emoteName];
         if(emoteId){
             return `<:${emoteName}:${emoteId}>`
