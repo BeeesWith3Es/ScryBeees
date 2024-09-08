@@ -11,7 +11,14 @@ import {
 import {Card} from "scryfall-api";
 import axios, {AxiosResponse} from "axios";
 import {CardList} from "./List.js";
-import {faceDelimiter, getCardManaCost, getCardOracleText, getCardStats, insertManaSymbols} from "./card-helpers.js";
+import {
+    faceDelimiter,
+    getCardManaCost,
+    getCardOracleText,
+    getCardStats,
+    insertManaSymbols,
+    scryfallIcon
+} from "./card-helpers.js";
 import * as repl from "node:repl";
 
 interface SearchResponseData{
@@ -105,16 +112,24 @@ export const searchAction = async (message: Message<boolean>, options) => {
 
     const createCardDetailEmbed = (card: Card): EmbedBuilder => {
         const description = `${card.type_line.replace(/\/\//, faceDelimiter)}\n\n${getCardOracleText(card, options.getManaEmoji())}\n\n${getCardStats(card)}`
-        console.log(getCardStats(card));
         return new EmbedBuilder()
             .setColor(options.botColor)
             .setTitle(`${card.name.replace(/\/\//, faceDelimiter)} — ${getCardManaCost(card, options.getManaEmoji())}`)
             .setDescription(description)
-            .setThumbnail(getCardImageOrFaces(card)[0]);
+            .setThumbnail(getCardImageOrFaces(card)[0])
+            .setFields({name: 'Scryfall Link:', value: card.scryfall_uri});
     }
 
     const waitingMessage = await message.reply('Looking...');
     try{
+        if(options.queryOption === options.linkOption){
+            const params = new URLSearchParams();
+            params.append('q', options.query);
+            params.append('as', 'grid');
+            message.reply(`Scryfall Search Page:\n${options.scryfallSearchPageUrl}?${params.toString()}`)
+            return;
+        }
+
         const response: AxiosResponse<CardList, any> = await axios.get(options.scryfallApiCardSearchUrl, {params: {q: query}})
 
         if(response.data.data.length === 1){

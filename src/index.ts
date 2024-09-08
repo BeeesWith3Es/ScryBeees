@@ -12,12 +12,13 @@ const keyPhrase = process.env.KEY_PHRASE ?? '';
 const addEmojiPhrase = 'add ';
 const helpOption = process.env.HELP_OPTION;
 const imageOption = process.env.IMAGE_OPTION;
+const linkOption = process.env.LINK_OPTION
 const extendedOption = process.env.EXTENDED_OPTION;
 
 const privateDelimiter = '((';
 const publicDelimiter = '<<';
 
-const options = [helpOption, imageOption, extendedOption].join('');
+const options = [helpOption, imageOption, extendedOption, linkOption].join('');
 console.log(`Loaded Options: ${options}`);
 const commandRegex = new RegExp(`(<{2}|\\({2})${keyPhrase}([ \s${options}])(.*?)(>{2}|\\){2})`, 'gmi');
 
@@ -36,11 +37,13 @@ const scrybConfig = {
     selectTimeOut: process.env.TIMEOUT ?? 120_000,
     scryfallApiCardSearchUrl: 'https://api.scryfall.com/cards/search',
     scryfallGetCardTextUrl: (cardId) => `https://api.scryfall.com/cards/${cardId}?format=text&pretty=true`,
+    scryfallSearchPageUrl: `https://scryfall.com/search`,
     botColor: 0xFFFC30,
     emotes,
     helpOption,
     imageOption,
     extendedOption,
+    linkOption,
     getManaEmoji: () => {
         if(!manaEmoji)
         manaEmoji = Object.fromEntries(emotes
@@ -94,10 +97,6 @@ botClient.on('ready', (client)=>{
                 helpAction(userMessage, scrybConfig);
                 return;
             }
-
-
-            
-
 
                 commands.forEach((command)=>{
                     if(command.queryOption !== helpOption){
