@@ -20,7 +20,7 @@ const publicDelimiter = '<<';
 
 const options = [helpOption, imageOption, extendedOption, linkOption].join('');
 console.log(`Loaded Options: ${options}`);
-const commandRegex = new RegExp(`(<{2}|\\({2})${keyPhrase}([ \s${options}])(.*?)(>{2}|\\){2})`, 'gmi');
+const commandRegex = new RegExp(`(<{2}|\\({2})${keyPhrase} *([${options}]?)(.*?)(>{2}|\\){2})`, 'gmi');
 
 interface Command {
     queryOption: string;

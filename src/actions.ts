@@ -30,7 +30,7 @@ interface SearchResponseData{
 const missingImageUrl = "https://errors.scryfall.com/missing.jpg"
 
 export const helpAction = (message: Message<boolean>, config) => {
-    message.reply(`Search scryfall by typing "scryb " followed by any valid scryfall search syntax, which defaults to searching card names.\nFind the syntax here: https://scryfall.com/docs/syntax.\n"scryb! " will return a full art response rather than an embed.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds.`);
+    message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>> or (()). Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you used the (()) option. \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself.`);
 }
 
 export const searchAction = async (message: Message<boolean>, options) => {
@@ -126,7 +126,12 @@ export const searchAction = async (message: Message<boolean>, options) => {
             const params = new URLSearchParams();
             params.append('q', options.query);
             params.append('as', 'grid');
-            message.reply(`Scryfall Search Page:\n${options.scryfallSearchPageUrl}?${params.toString()}`)
+            if(options.privateSelect){
+                message.author.send(`Scryfall Search Page:\n${options.scryfallSearchPageUrl}?${params.toString()}`)
+                message.reply('Delivered personally!')
+            }else {
+                message.reply(`Scryfall Search Page:\n${options.scryfallSearchPageUrl}?${params.toString()}`)
+            }
             return;
         }
 
