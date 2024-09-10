@@ -19,7 +19,7 @@ import {
     insertManaSymbols,
     scryfallIcon
 } from "./card-helpers.js";
-import * as repl from "node:repl";
+import {usePagination} from "./usePagination.js";
 
 interface SearchResponseData{
     cardEmbeds?: EmbedBuilder[];
@@ -27,7 +27,9 @@ interface SearchResponseData{
     cards?: Card[]
 }
 
-const missingImageUrl = "https://errors.scryfall.com/missing.jpg"
+const missingImageUrl = "https://errors.scryfall.com/missing.jpg";
+
+const {getDataForSubPage, pageData } = usePagination();
 
 export const helpAction = (message: Message<boolean>, config) => {
     message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>> or (()). Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you used the (()) option. \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself.`);
@@ -41,13 +43,14 @@ export const searchAction = async (message: Message<boolean>, options) => {
 
     const imageOnly = queryOption === options.imageOption;
 
-    const processSearchResponse = (cards: CardList, limit = 15): SearchResponseData => {
+    const processSearchResponse = (cards: CardList, limit = 9): SearchResponseData => {
         const totalCards = cards.total_cards ?? cards.data.length;
 
         const cardEmbed = new EmbedBuilder()
             .setColor(options.botColor)
             .setTitle('Results: ')
-            .setDescription(`${totalCards} card${totalCards === 1 ? '' : 's'} found`);
+            .setDescription(`${totalCards} card${totalCards === 1 ? '' : 's'} found`)
+            // .setFooter({text: ``});
 
         if(totalCards === 0){
             return {cardEmbeds: [cardEmbed]};
@@ -117,7 +120,7 @@ export const searchAction = async (message: Message<boolean>, options) => {
             .setTitle(`${card.name.replace(/\/\//, faceDelimiter)} — ${getCardManaCost(card, options.getManaEmoji())}`)
             .setDescription(description)
             .setThumbnail(getCardImageOrFaces(card)[0])
-            .setFields({name: 'Scryfall Link:', value: card.scryfall_uri});
+            .setFields({name: ' ', value: `[Scryfall Link](${card.scryfall_uri})`});
     }
 
     const waitingMessage = await message.reply('Looking...');
@@ -152,7 +155,23 @@ export const searchAction = async (message: Message<boolean>, options) => {
         components = cardActions
         selectCards = cards;
 
-
+        // TODO remove. test pagination code.
+        const {cards: subPageCards, pages, query:pageQuery} = await getDataForSubPage(20, response.data);
+        subPageCards.forEach((card)=> {
+                console.log(card.name)
+                let index;
+                pageData[pageQuery][pages[0]].data.find((dataCard, dataIndex)=>{
+                    const match = card.id === dataCard.id;
+                    if(match) index = dataIndex;
+                    return match;
+                })
+                pageData[pageQuery][pages[1]]?.data.find((dataCard, dataIndex)=>{
+                    const match = card.id === dataCard.id;
+                    if(match) index = dataIndex;
+                    return match;
+                })
+                console.log(index)
+            });
         const reply = privateSelect ? await message.author.send({embeds, components}) : await message.reply({ embeds, components});
         const selectCollector = reply.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,

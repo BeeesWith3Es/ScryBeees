@@ -6,6 +6,13 @@ const manaSymbolRegex = /{(.*?)}/gi
 export const noCostString = 'No Cost';
 export const faceDelimiter = '//';
 
+interface Face {
+    power?: string,
+    toughness?: string,
+    mana_cost?: string,
+    oracle_text?: string
+}
+
 const formatCardStats = (card: Card | {power?: string, toughness?: string}, escapeStar = true) => {
     if(card.power && card.toughness){
         return `${card.power === '*' && escapeStar ? '\\*' : card.power}/${card.toughness === '*' && escapeStar ? '\\*' : card.toughness}`
