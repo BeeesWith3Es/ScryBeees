@@ -1,6 +1,6 @@
 import {CardList} from "./List.js";
 import {Card} from "scryfall-api";
-import axios from "axios";
+import axios, {AxiosResponse} from "axios";
 
 
 interface IndexMetaData {
@@ -11,21 +11,38 @@ interface IndexMetaData {
 
 const pageRegex = /&page=(\d+)/;
 
-export const usePagination = () => {
+export const usePagination = (url: string) => {
     const itemsPerPage = 175;
     const itemsPerSubPage = 9;
     // const lastWholeSubpage = Math.floor(firstPageData.total_cards/itemsPerPage);
     // const lastSubPageCrossesSeam = itemsOnLastPage !== itemsPerSubPage;
 
-    const pageData: Record<string, Record<string, CardList>> = {};
+    const pageCache: Record<string, Record<string, CardList>> = {};
 
-    const clearPageData = () => {
-        for (let key in pageData){
-            if (pageData.hasOwnProperty(key)){
-                delete pageData[key];
+    const clearPageCache = () => {
+        for (let key in pageCache){
+            if (pageCache.hasOwnProperty(key)){
+                delete pageCache[key];
             }
         }
     };
+
+    const prettyPrintCache = (): string => {
+        let print = ''
+        Object.entries(pageCache).forEach((query)=>{
+            print = `${print}Query: ${query[0]}\nTotal Cards: ${query[1]['0'].total_cards}\n`
+            Object.entries(query[1]).forEach((page)=> {
+                print = `${print}\t${page[0]}: First Card: ${page[1].data[0].name}\n\t   Page Size: ${page[1].data.length}\n`
+            })
+        })
+        return print;
+    }
+
+    const getNumberOfSubPages = (queryKey: string) => {
+        const totalCards = Number(pageCache?.[queryKey]?.['0'].total_cards);
+        if(isNaN(totalCards)) return -1;
+        return Math.ceil(totalCards/itemsPerSubPage);
+    }
 
     const firstCardNumber = (subPage: number, totalCards: number): number => {
         return Math.min((subPage * itemsPerSubPage), totalCards-1);
@@ -68,7 +85,6 @@ export const usePagination = () => {
                 endingIndex: itemsPerSubPage - 1 - (leftSeam.endingIndex - leftSeam.startingIndex) - 1
             });
         } else {
-            // console.log('No seam', getStartingIndex(subPage, totalCards), ', ', getEndingIndex(subPage, totalCards))
             indexMetaData.push({
                 page: page,
                 startingIndex: getStartingIndex(subPage, totalCards),
@@ -93,39 +109,58 @@ export const usePagination = () => {
         return regexCapture?.[1] ?? null;
     }
 
-    const getDataForSubPage = async (subPage: number, firstPageData: CardList): Promise<{cards: Card[], query: string, pages: number[]}> => {
+    const getDataForPage = async (queryKey: string, page: number) => {
+        const query = decodeURIComponent(queryKey);
+        if(!pageCache[queryKey]){
+            pageCache[queryKey] = {};
+        }
+        if(!pageCache[queryKey][page]){
+            console.log(`Fetching data for page ${page} query "${query}" ... `)
+            const response: AxiosResponse<CardList, any> = await axios.get(url, {params: {q: query, page: page > 0 ? page+1 : undefined}});
+            pageCache[queryKey][page] = response.data;
+        } else {
+            console.log(`Using cache for page ${page} query "${query}".`)
+        }
+        return pageCache[queryKey][page];
+    }
+
+    const getDataForFirstPage = async (queryKey: string) => {
+        return await getDataForPage(queryKey, 0);
+    }
+
+    const getDataForSubPage = async (subPage: number, queryKey: string, totalCards: number): Promise<{cards: Card[], cardIndexes: number[], query: string, subPages: number}> => {
         // const dataPage = getDataPageNumber(subPage);
-        const totalCards = firstPageData.total_cards
-        const query = getDataQuery(firstPageData.next_page);
         const indexMetaData = getIndexMetaData(subPage, totalCards);
-        if(!pageData[query]){
-            pageData[query] = {};
+        if(!pageCache[queryKey]){
+            pageCache[queryKey] = {};
         }
         for (let i = 0; i < indexMetaData.length; i++) {
             const pageNumber = indexMetaData[i].page;
-            if(!pageData[query][pageNumber]){
-                console.log(`Fetching data for page ${pageNumber} ... `)
+            if(!pageCache[queryKey][pageNumber]){
                 try {
-                    const response = await axios.get(firstPageData.next_page.replace(pageRegex, `&page=${pageNumber + 1}`))
-                    pageData[query][pageNumber] = response.data;
+                    pageCache[queryKey][pageNumber] = await getDataForPage(queryKey, pageNumber);
                 } catch (error) {
                     console.log(`Error while fetching pages for pagination: `, error);
                 }
             } else {
-                console.log(`Using cached data for page ${pageNumber}.`)
+                console.log(`Using cached data for page ${pageNumber} "${decodeURIComponent(queryKey)}".`)
             }
 
         }
 
         let cards: Card[] = [];
-        const pages: number[] = [];
+        let cardIndexes: number[] = [];
+        // const pages: number[] = [];
         indexMetaData.forEach((metaData) => {
-            pages.push(metaData.page);
-            cards = cards.concat(pageData[query][metaData.page].data.slice(metaData.startingIndex, metaData.endingIndex+1))
+            // pages.push(metaData.page);
+            cards = cards.concat(pageCache[queryKey][metaData.page].data.slice(metaData.startingIndex, metaData.endingIndex+1))
+            cardIndexes = cardIndexes.concat([...Array(metaData.endingIndex - metaData.startingIndex + 1).keys()].map(x => x + metaData.startingIndex));
         })
 
-        return {cards, query, pages};
+        const subPages = Math.ceil(totalCards/itemsPerSubPage);
+
+        return {cards, cardIndexes, query: queryKey, subPages};
     }
 
-    return { getDataForSubPage, pageData, clearPageData };
+    return { getDataForFirstPage, getDataForPage,  getDataForSubPage, getNumberOfSubPages, pageCache, clearPageCache, prettyPrintCache };
 }

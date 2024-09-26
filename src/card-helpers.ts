@@ -10,10 +10,11 @@ interface Face {
     power?: string,
     toughness?: string,
     mana_cost?: string,
-    oracle_text?: string
+    oracle_text?: string,
+    card_faces?: Face[]
 }
 
-const formatCardStats = (card: Card | {power?: string, toughness?: string}, escapeStar = true) => {
+const formatCardStats = (card: Card | Face, escapeStar = true) => {
     if(card.power && card.toughness){
         return `${card.power === '*' && escapeStar ? '\\*' : card.power}/${card.toughness === '*' && escapeStar ? '\\*' : card.toughness}`
     }
@@ -22,18 +23,21 @@ const formatCardStats = (card: Card | {power?: string, toughness?: string}, esca
 
 export const getCardStats = (card: Card, escapeStar = true): string => {
     let stats = '';
+    const hasBackfaceStats = (face: Face): boolean => {
+        return (!!face.power && !!face.toughness);
+    };
     if(card.card_faces && card.card_faces.length>=1){
-        card.card_faces.forEach((face, i)=> {stats = `${stats} ${i > 0 ? faceDelimiter : ''} ${formatCardStats(face, escapeStar)}`})
+        card.card_faces.forEach((face, i) => {stats = `${stats} ${i > 0 && hasBackfaceStats(face) ? faceDelimiter : ''} ${formatCardStats(face, escapeStar)}`})
         return stats;
     }
     return formatCardStats(card, escapeStar);
 }
 
-export const hasNoCost = (card: Card | {mana_cost?: string}): boolean => {
+export const hasNoCost = (card: Card | Face ): boolean => {
     return card.mana_cost === undefined || card.mana_cost === '';
 }
 
-const formatManaCost = (card: Card | {mana_cost?: string}, manaEmotes: Record<string, string>, blankNoCost = false): string => {
+const formatManaCost = (card: Card | Face, manaEmotes: Record<string, string>, blankNoCost = false): string => {
     if(hasNoCost(card)){
         return blankNoCost ? '' : noCostString;
     }
@@ -54,11 +58,11 @@ export const getCardManaCost = (card: Card, manaEmotes: Record<string, string>):
     return formatManaCost(card, manaEmotes);
 }
 
-export const getCardOracleText = (card: Card | {oracle_text?: string, card_faces?: []}, manaEmotes: Record<string, string>) => {
+export const getCardOracleText = (card: Card | Face, manaEmotes: Record<string, string>) => {
     let oText = '';
 
-    if(card.card_faces && card.card_faces.length>=1){
-        card.card_faces.forEach((face, i)=> {oText = `${oText} ${i > 0 ? `\n------------\n` : ''} ${insertManaSymbols(face.oracle_text, manaEmotes)}`})
+    if(card?.card_faces && card?.card_faces.length>=1){
+        card?.card_faces.forEach((face: Face, i: number)=> {oText = `${oText} ${i > 0 ? `\n------------\n` : ''} ${insertManaSymbols(face.oracle_text, manaEmotes)}`})
         return oText;
     }
     return insertManaSymbols(card.oracle_text, manaEmotes);
