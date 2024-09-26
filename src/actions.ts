@@ -88,7 +88,7 @@ export const searchAction = async (message: Message<boolean>, config) => {
 
         cardEmbed.addFields(...fields);
         const cardSelect = new StringSelectMenuBuilder()
-            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:1:${message.id}`)
+            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:0:${message.id}`)
             .setMinValues(1)
             .setMaxValues(selectableCards.length<=9 ? selectableCards.length: 9)
             .setPlaceholder('Select Card to get details')
