@@ -50,12 +50,12 @@ export const getCardManaCost = (card: Card, manaEmotes: Record<string, string>):
     if(card.card_faces && card.card_faces.length>=1){
         card.card_faces.forEach((face, i)=> {
             if(!hasNoCost(face)){
-                cost = `${cost} ${i > 0 ? faceDelimiter : ''} ${formatManaCost(face, manaEmotes)}`;
+                cost = `${cost} ${i > 0 ? faceDelimiter : ''} ${formatManaCost(face, manaEmotes, card.type_line.toLowerCase().includes('land'))}`;
             }
         })
         return cost;
     }
-    return formatManaCost(card, manaEmotes);
+    return formatManaCost(card, manaEmotes, card.type_line.toLowerCase().includes('land'));
 }
 
 export const getCardOracleText = (card: Card | Face, manaEmotes: Record<string, string>) => {

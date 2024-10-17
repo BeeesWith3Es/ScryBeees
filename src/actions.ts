@@ -28,8 +28,8 @@ interface SearchResponseData{
 }
 
 const missingImageUrl = "https://errors.scryfall.com/missing.jpg";
-const cardSelectIdPrefix = 'card-select';
-const pageSelectIdPrefix = 'page-select';
+const cardSelectIdPrefix = 'cs';
+const pageSelectIdPrefix = 'ps';
 
 const { getDataForFirstPage , getDataForSubPage, getNumberOfSubPages, prettyPrintCache, getDataForPage } = usePagination('https://api.scryfall.com/cards/search');
 
@@ -88,7 +88,7 @@ export const searchAction = async (message: Message<boolean>, config) => {
 
         cardEmbed.addFields(...fields);
         const cardSelect = new StringSelectMenuBuilder()
-            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:0:${message.id}`)
+            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:0:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(selectableCards.length<=9 ? selectableCards.length: 9)
             .setPlaceholder('Select Card to get details')
@@ -122,12 +122,17 @@ export const searchAction = async (message: Message<boolean>, config) => {
 
     const getCardImageOrFaces = (card: Card): string[] => {
         if(card.image_status === "missing") return [missingImageUrl];
-        if(card.card_faces && card.card_faces.length >=1) return card.card_faces.map((face)=>face?.image_uris?.large ?? missingImageUrl);
+
+        if(card.card_faces && card.card_faces.length >=1) {
+            if(card.card_faces[0]?.image_uris?.large || card.card_faces[1]?.image_uris?.large){
+                return card.card_faces.map((face)=>face?.image_uris?.large ?? missingImageUrl);
+            }
+        }
         return [card?.image_uris?.large ?? missingImageUrl];
     }
 
     const createCardDetailEmbed = (card: Card): EmbedBuilder => {
-        const description = `### [${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri}) — ${getCardManaCost(card, config.getManaEmoji())}\n\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardOracleText(card, config.getManaEmoji())}\n\n${getCardStats(card)}`
+        const description = `### [${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri}) ${getCardManaCost(card, config.getManaEmoji())}\n\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardOracleText(card, config.getManaEmoji())}\n\n${getCardStats(card)}`
         return new EmbedBuilder()
             .setColor(config.botColor)
             .setDescription(description)
@@ -177,7 +182,7 @@ export const searchAction = async (message: Message<boolean>, config) => {
         });
 
         const cardSelect = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(new StringSelectMenuBuilder()
-            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:${subPage}:${totalCards}:${Math.random()}`)
+            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:${subPage}:${totalCards}:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(response.cards.length<=9 ? response.cards.length: 9)
             .setPlaceholder('Select Card to get details')

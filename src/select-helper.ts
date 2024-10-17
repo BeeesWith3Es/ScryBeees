@@ -31,7 +31,7 @@ export const createPageSelect = (queryKey: string, currentSubPage: number, subPa
     const pageSelect = new StringSelectMenuBuilder()
     if(subPages !== -1){
         pageSelect
-            .setCustomId(`${pageSelectIdPrefix}:${queryKey}:${totalCards}:${Math.random}`)
+            .setCustomId(`${pageSelectIdPrefix}:${queryKey}:${totalCards}:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(1)
             .setPlaceholder('Select page to jump to');
