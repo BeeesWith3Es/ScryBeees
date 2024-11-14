@@ -20,7 +20,6 @@ import {
 } from "./card-helpers.js";
 import {usePagination} from "./usePagination.js";
 import {createCardFields, createCardSelectOptions, createPageSelect, createPageText} from "./select-helper.js";
-import pjson from "../package.json";
 
 interface SearchResponseData{
     cardEmbeds?: EmbedBuilder[];
@@ -35,7 +34,7 @@ const pageSelectIdPrefix = 'ps';
 const { getDataForFirstPage , getDataForSubPage, getNumberOfSubPages, prettyPrintCache, getDataForPage } = usePagination('https://api.scryfall.com/cards/search');
 
 export const helpAction = (message: Message<boolean>, config) => {
-    message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>> or (()). Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you used the (()) option. \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself.\n\nScrybeees Version ${pjson.version}`);
+    message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>> or (()). Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you used the (()) option. \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself.\n\nScrybeees Version ${process.env.npm_package_version}`);
 }
 
 export const searchAction = async (message: Message<boolean>, config) => {
