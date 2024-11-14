@@ -16,7 +16,8 @@ const createCardOption = (card: Card, i: number) => {
 }
 
 const createCardField = (card: Card, manaEmotes: Record<string, string>): APIEmbedField => {
-    return {name: `${card.name.replace(/\/\//, faceDelimiter)} | ${card.set.toUpperCase()}`, value: `${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardManaCost(card, manaEmotes)}\n${getCardStats(card)}`, inline: true}
+
+    return {name: ` `, value: `**[${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri})** | ${card.set.toUpperCase()}\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardManaCost(card, manaEmotes)}\n${getCardStats(card)}`, inline: true}
 }
 
 export const createCardSelectOptions = (cards: Card[]) =>{
