@@ -98,7 +98,7 @@ botClient.on('ready', (client)=>{
                 return;
             }
 
-                commands.forEach((command)=>{
+                for (const command of commands) {
                     if(command.queryOption !== helpOption){
                         console.log(`----------------SEARCH ACTION:----------------`)
                         console.log(`${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} Eastern`)
@@ -106,13 +106,17 @@ botClient.on('ready', (client)=>{
                         console.log(`SERVER: ${userMessage.guild.name}:${userMessage.guild.id}`)
                         console.log(`QUERY: ${command.query}`)
                         console.log(`OPTION(PRIVATE?): ${command.queryOption}(${command.privateSelect})`)
-                        searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
+                        try {
+                           await searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
+                        }catch(error){
+                            console.log("\nError during search action\n", `\nName: ${error.name}\nMessage: ${error.message}\nCode: ${error.code}`);
+                        }
+
                         console.log(`----------------------------------------------\n`)
                     }
-                })
+                }
 
 
-        
             // if(message.content.toLowerCase().startsWith(addEmojiPhrase)){
             //     try{
             //         const emoteRegex = /<:(.+):(\d+)>/gm;
