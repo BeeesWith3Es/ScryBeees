@@ -132,8 +132,7 @@ botClient.on('ready', (client)=>{
             // }
 
         }catch(error){
-            console.log("Error during message received\n", error, '\nMessage:\n', userMessage);
-            userMessage.reply(`There was an error in processing your request: "${error.message}"\nBut I did not crash, try again!`);
+            console.log("Error during message received\n", `Code: ${error.code}\nMessage: ${error.message}`, '\nMessage:\n', userMessage);
         }
     })
 
