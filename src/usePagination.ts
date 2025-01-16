@@ -38,6 +38,7 @@ export const usePagination = (url: string) => {
         return print;
     }
 
+    // used externally
     const getNumberOfSubPages = (queryKey: string) => {
         const totalCards = Number(pageCache?.[queryKey]?.['0'].total_cards);
         if(isNaN(totalCards)) return -1;

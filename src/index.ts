@@ -8,19 +8,18 @@ import {helpAction, searchAction} from "./actions.js";
 
 dotenv.config();
 
-const keyPhrase = process.env.KEY_PHRASE ?? '';
 const addEmojiPhrase = 'add ';
-const helpOption = process.env.HELP_OPTION;
-const imageOption = process.env.IMAGE_OPTION;
-const linkOption = process.env.LINK_OPTION
-const extendedOption = process.env.EXTENDED_OPTION;
+const helpOption = '?';
+const imageOption = '!';
+const linkOption = '@'
+const extendedOption = '&';
 
 const privateDelimiter = '((';
 const publicDelimiter = '<<';
 
 const options = [helpOption, imageOption, extendedOption, linkOption].join('');
 console.log(`Loaded Options: ${options}`);
-const commandRegex = new RegExp(`(<{2}|\\({2})${keyPhrase} *([${options}]?)(.*?)(>{2}|\\){2})`, 'gmi');
+const commandRegex = /<<([?!@&]?)(.*?)>>(@?.*)/gmi;
 
 interface Command {
     queryOption: string;
@@ -87,9 +86,9 @@ botClient.on('ready', (client)=>{
             }
 
             const commands = commandCaptures.map((capture)=>({
-                privateSelect: capture[1] === privateDelimiter,
-                queryOption: capture[2],
-                query: capture[3].trim()
+                queryOption: capture[1],
+                query: capture[2].trim(),
+                privateSelect: capture[3] === '@',
             } as Command));
 
             if(commands.length === 1 && commands[0].queryOption === helpOption){
