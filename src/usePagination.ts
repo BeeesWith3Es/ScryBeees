@@ -11,6 +11,21 @@ interface IndexMetaData {
 
 const pageRegex = /&page=(\d+)/;
 
+export const generateId = () => {
+    let uuid = "";
+    const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (let i = 0; i < 24; i++) {
+        if (i%4 === 0 && i !== 0) {
+            uuid += "-";
+        }
+        uuid += chars.charAt(Math.floor(Math.random() * chars.length));
+
+    }
+
+    return uuid;
+}
+
 export const usePagination = (url: string) => {
     const itemsPerPage = 175;
     const itemsPerSubPage = 9;
@@ -18,6 +33,23 @@ export const usePagination = (url: string) => {
     // const lastSubPageCrossesSeam = itemsOnLastPage !== itemsPerSubPage;
 
     const pageCache: Record<string, Record<string, CardList>> = {};
+    const idToQueryMap: Record<string, string> = {};
+    const queryToIdMap: Record<string, string> = {};
+
+    const mapQueryKeyToId = (queryKey) => {
+        const id = generateId();
+        idToQueryMap[id] = queryKey;
+        queryToIdMap[queryKey] = id;
+        return id;
+    }
+
+    const getIdFromQuery = (queryKey) => {
+        return queryToIdMap?.[queryKey];
+    }
+
+    const getQueryFromId = (id) => {
+        return idToQueryMap?.[id];
+    }
 
     const clearPageCache = () => {
         for (let key in pageCache){
@@ -163,5 +195,5 @@ export const usePagination = (url: string) => {
         return {cards, cardIndexes, query: queryKey, subPages};
     }
 
-    return { getDataForFirstPage, getDataForPage,  getDataForSubPage, getNumberOfSubPages, pageCache, clearPageCache, prettyPrintCache };
+    return { getDataForFirstPage, getDataForPage,  getDataForSubPage, getNumberOfSubPages, pageCache, clearPageCache, prettyPrintCache, mapQueryKeyToId, getIdFromQuery, getQueryFromId };
 }

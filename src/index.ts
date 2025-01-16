@@ -13,6 +13,7 @@ const helpOption = '?';
 const imageOption = '!';
 const linkOption = '@'
 const extendedOption = '&';
+const optionsSplitter = '@'
 
 const privateDelimiter = '((';
 const publicDelimiter = '<<';
@@ -64,6 +65,19 @@ const botClient = new Client({
     allowedMentions: {repliedUser: false}
 });
 
+export enum OPTIONS {
+    PRIVATE = 'private'
+}
+
+const getOptions = (optionsString: string) => {
+    const optionsArray = optionsString.split(optionsSplitter);
+    const selectedOptions = [];
+    if((optionsArray.length == 2 && optionsArray[0] === optionsArray[1]) || optionsArray.includes(OPTIONS.PRIVATE)){
+        selectedOptions.push(OPTIONS.PRIVATE)
+    }
+    return selectedOptions;
+}
+
 botClient.on('ready', (client)=>{
     console.log(`Ready at ${new Date(client.readyTimestamp)}`);
     emotes = Array.from(client.emojis.valueOf().values());
@@ -85,11 +99,14 @@ botClient.on('ready', (client)=>{
                 regexResult = commandRegex.exec(userMessage.content);
             }
 
-            const commands = commandCaptures.map((capture)=>({
-                queryOption: capture[1],
-                query: capture[2].trim(),
-                privateSelect: capture[3] === '@',
-            } as Command));
+            const commands = commandCaptures.map((capture)=>{
+                const options =  getOptions(capture[3]);
+                return {
+                    queryOption: capture[1],
+                    query: capture[2].trim(),
+                    privateSelect: options.includes(OPTIONS.PRIVATE)
+                } as Command}
+            );
 
             if(commands.length === 1 && commands[0].queryOption === helpOption){
                 console.log(`${userMessage.author.username}:${userMessage.author.id} asked for help`)
@@ -114,25 +131,6 @@ botClient.on('ready', (client)=>{
                         console.log(`----------------------------------------------\n`)
                     }
                 }
-
-
-            // if(message.content.toLowerCase().startsWith(addEmojiPhrase)){
-            //     try{
-            //         const emoteRegex = /<:(.+):(\d+)>/gm;
-            //         const emojiUris = message.content.replace(addEmojiPhrase, '').split(' ').map((emote)=>{
-            //             const extractedEmote = emoteRegex.exec(emote);
-            //             const url =  `https://cdn.discordapp.com/emojis/${extractedEmote?.[2]}.png?v=1`
-            //             const name = extractedEmote?.[1]//.replace('mana', 'mana_');
-            //             emoteRegex.lastIndex = 0;
-            //             console.log(extractedEmote);
-            //             return {url, name};
-            //         })
-            //         .forEach((emojiUri)=>{message.guild.emojis.create({name: emojiUri.name.replace('mana', 'mana_'), attachment: emojiUri.url})});
-                    
-            //     }catch(error){
-            //         console.log("OOOOOPS!!!", error)
-            //     }
-            // }
 
         }catch(error){
             console.log("Error during message received\n", `Code: ${error.code}\nMessage: ${error.message}`, '\nMessage:\n', userMessage);

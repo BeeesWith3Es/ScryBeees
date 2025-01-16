@@ -17,7 +17,7 @@ const createCardOption = (card: Card, i: number) => {
 
 const createCardField = (card: Card, manaEmotes: Record<string, string>): APIEmbedField => {
 
-    return {name: ` `, value: `**[${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri})** | ${card.set.toUpperCase()}\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardManaCost(card, manaEmotes)}\n${getCardStats(card)}`, inline: true}
+    return {name: ` `, value: `**[${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri})** | [${card.set.toUpperCase()}](${card.scryfall_set_uri})\n${getCardManaCost(card, manaEmotes)}\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardStats(card)}`, inline: true}
 }
 
 export const createCardSelectOptions = (cards: Card[]) =>{
@@ -28,11 +28,11 @@ export const createCardFields = (cards: Card[], manaEmotes: Record<string, strin
     return cards.map((card)=>createCardField(card, manaEmotes));
 }
 
-export const createPageSelect = (queryKey: string, currentSubPage: number, subPages: number, totalCards: number, pageSelectIdPrefix: string) =>{
+export const createPageSelect = (queryId: string, currentSubPage: number, subPages: number, totalCards: number, pageSelectIdPrefix: string) =>{
     const pageSelect = new StringSelectMenuBuilder()
     if(subPages !== -1){
         pageSelect
-            .setCustomId(`${pageSelectIdPrefix}:${queryKey}:${totalCards}:${Math.floor(Math.random()*99999)}`)
+            .setCustomId(`${pageSelectIdPrefix}:${queryId}:${totalCards}:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(1)
             .setPlaceholder('Select page to jump to');

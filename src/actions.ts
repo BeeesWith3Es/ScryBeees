@@ -31,10 +31,10 @@ const missingImageUrl = "https://errors.scryfall.com/missing.jpg";
 const cardSelectIdPrefix = 'cs';
 const pageSelectIdPrefix = 'ps';
 
-const { getDataForFirstPage , getDataForSubPage, getNumberOfSubPages, prettyPrintCache, getDataForPage } = usePagination('https://api.scryfall.com/cards/search');
+const { getDataForFirstPage , getDataForSubPage, getNumberOfSubPages, prettyPrintCache, getDataForPage, mapQueryKeyToId, getQueryFromId, getIdFromQuery } = usePagination('https://api.scryfall.com/cards/search');
 
 export const helpAction = (message: Message<boolean>, config) => {
-    message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>> or (()). Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you used the (()) option. \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself.\n\nScrybeees Version ${process.env.npm_package_version}`);
+    message.reply(`Search scryfall by typing any valid scryfall search syntax within <<>>. Typing only words will search by card name.\nFind the syntax here: https://scryfall.com/docs/syntax.\nIf there are multiple results, you will be presented with a select to choose the card you want details on that will expire after ${config.selectTimeOut/1000} seconds. This selector will be DM'd to you if you append your search with @ or @private (for instance, <<o:draw>>@). \nPrefix your query with ! for full images, or @ to receive a link to your search on Scryfall itself (for instance, <<! art:"looking left">>).\n\nScrybeees Version ${process.env.npm_package_version}`);
 }
 
 export const searchAction = async (message: Message<boolean>, config) => {
@@ -67,6 +67,10 @@ export const searchAction = async (message: Message<boolean>, config) => {
     }
 
     const processSearchResponse = (cardList: CardList, queryKey: string, limit = 9): SearchResponseData => {
+        let queryId = getIdFromQuery(queryKey);
+        if(!queryId){
+            queryId = mapQueryKeyToId(queryKey);
+        }
         const totalCards = cardList.total_cards ?? cardList.data.length;
 
         const cardEmbed = new EmbedBuilder()
@@ -88,7 +92,7 @@ export const searchAction = async (message: Message<boolean>, config) => {
 
         cardEmbed.addFields(...fields);
         const cardSelect = new StringSelectMenuBuilder()
-            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:0:${Math.floor(Math.random()*99999)}`)
+            .setCustomId(`${cardSelectIdPrefix}:${queryId}:0:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(selectableCards.length<=9 ? selectableCards.length: 9)
             .setPlaceholder('Select Card to get details')
@@ -100,7 +104,7 @@ export const searchAction = async (message: Message<boolean>, config) => {
             }))
         const subPages: number = getNumberOfSubPages(queryKey);
         cardEmbed.setFooter({text: createPageText(1, subPages)});
-        const pageSelect = createPageSelect(queryKey, 0, subPages, totalCards, pageSelectIdPrefix);
+        const pageSelect = createPageSelect(queryId, 0, subPages, totalCards, pageSelectIdPrefix);
 
         const deleteButton = new ButtonBuilder()
             .setCustomId(`delete-button-${message.id}`)
@@ -142,7 +146,8 @@ export const searchAction = async (message: Message<boolean>, config) => {
     const handleCardSelection = async (interaction: StringSelectMenuInteraction) => {
 
         const cardSelectDataRegex = /.*?:([^:]*?):(\d+):(\d+)/gmi;
-        const [, queryKey, subPage, totalCards] = cardSelectDataRegex.exec(interaction.customId);
+        const [, queryId, subPage, totalCards] = cardSelectDataRegex.exec(interaction.customId);
+        const queryKey = getQueryFromId(queryId)
         const {cards} = await getDataForSubPage( Number(subPage), queryKey, Number(totalCards));
         const selectedCards = interaction.values
             .map((val) => {
@@ -167,7 +172,9 @@ export const searchAction = async (message: Message<boolean>, config) => {
     const handlePageSelection = async (interaction: StringSelectMenuInteraction) => {
         const pageSelectDataRegex = /.*?:([^:]*?):(\d+)/gmi;
         const pageSelectData = pageSelectDataRegex.exec(interaction.customId);
-        const queryKey = pageSelectData[1];
+        // What if this errors
+        const queryId = pageSelectData[1];
+        const queryKey = getQueryFromId(queryId);
         const totalCards = Number(pageSelectData[2]);
         const subPage = isNaN(Number(interaction.values[0])) ? 0 : Number(interaction.values[0]);
         const response = await getDataForSubPage(subPage, queryKey, totalCards);
@@ -182,14 +189,14 @@ export const searchAction = async (message: Message<boolean>, config) => {
         });
 
         const cardSelect = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(new StringSelectMenuBuilder()
-            .setCustomId(`${cardSelectIdPrefix}:${queryKey}:${subPage}:${totalCards}:${Math.floor(Math.random()*99999)}`)
+            .setCustomId(`${cardSelectIdPrefix}:${queryId}:${subPage}:${totalCards}:${Math.floor(Math.random()*99999)}`)
             .setMinValues(1)
             .setMaxValues(response.cards.length<=9 ? response.cards.length: 9)
             .setPlaceholder('Select Card to get details')
             .addOptions(options));
 
         const pageSelect = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            createPageSelect(queryKey, subPage, response.subPages, totalCards, pageSelectIdPrefix));
+            createPageSelect(queryId, subPage, response.subPages, totalCards, pageSelectIdPrefix));
 
         const deleteButton = interaction.message.components[2];
 
