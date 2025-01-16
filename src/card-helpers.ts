@@ -1,43 +1,74 @@
 import { AttachmentBuilder  } from "discord.js";
-import { Card } from "scryfall-api";
+import {Card, Color} from "scryfall-api";
 
 const manaSymbolRegex = /{(.*?)}/gi
 
-export const noCostString = 'No Cost';
-export const faceDelimiter = '//';
-
-interface Face {
-    power?: string,
-    toughness?: string,
-    mana_cost?: string,
-    oracle_text?: string,
-    card_faces?: Face[]
+export const noCostString = '*No Cost*';
+export const faceDelimiter = '||';
+export const dfcSeparatorString = '—————————————'
+type Nullable<T> = T | null | undefined;
+interface ImageUris {
+    art_crop: string;
+    border_crop: string;
+    large: string;
+    normal: string;
+    png: string;
+    small: string;
+}
+interface CardFace {
+    artist?: Nullable<string>;
+    artist_id?: Nullable<string>;
+    cmc?: Nullable<number>;
+    color_indicator?: Nullable<Color[]>;
+    colors?: Nullable<Color[]>;
+    defense?: Nullable<string>;
+    flavor_text?: Nullable<string>;
+    illustration_id?: Nullable<string>;
+    image_uris?: Nullable<ImageUris>;
+    layout?: Nullable<string>;
+    loyalty?: Nullable<string>;
+    mana_cost: string;
+    name: string;
+    object: 'card_face';
+    oracle_id?: Nullable<string>;
+    oracle_text?: Nullable<string>;
+    power?: Nullable<string>;
+    printed_name?: Nullable<string>;
+    printed_text?: Nullable<string>;
+    printed_type_line?: Nullable<string>;
+    toughness?: Nullable<string>;
+    type_line?: Nullable<string>;
+    watermark?: Nullable<string>;
 }
 
-const formatCardStats = (card: Card | Face, escapeStar = true) => {
+export const formatCardStats = (card: Card | CardFace, escapeStar = true) => {
     if(card.power && card.toughness){
         return `${card.power === '*' && escapeStar ? '\\*' : card.power}/${card.toughness === '*' && escapeStar ? '\\*' : card.toughness}`
+    }
+
+    if(card.loyalty) {
+        return `[${card.loyalty}]`
     }
     return '';
 }
 
-export const getCardStats = (card: Card, escapeStar = true): string => {
+export const getCardStats = (card: Card | CardFace, escapeStar = true): string => {
     let stats = '';
-    const hasBackfaceStats = (face: Face): boolean => {
-        return (!!face.power && !!face.toughness);
+    const hasBackfaceStats = (face: CardFace): boolean => {
+        return (!!face.power && !!face.toughness && !!face.loyalty);
     };
-    if(card.card_faces && card.card_faces.length>=1){
-        card.card_faces.forEach((face, i) => {stats = `${stats} ${i > 0 && hasBackfaceStats(face) ? faceDelimiter : ''} ${formatCardStats(face, escapeStar)}`})
+    if(card.object == "card" && card?.card_faces && card.card_faces.length >= 1){
+        (card as Card).card_faces.forEach((face, i) => {stats = `${stats} ${i > 0 && hasBackfaceStats(face) ? faceDelimiter : ''} ${formatCardStats(face, escapeStar)}`})
         return stats;
     }
     return formatCardStats(card, escapeStar);
 }
 
-export const hasNoCost = (card: Card | Face ): boolean => {
+export const hasNoCost = (card: Card | CardFace ): boolean => {
     return card.mana_cost === undefined || card.mana_cost === '';
 }
 
-const formatManaCost = (card: Card | Face, manaEmotes: Record<string, string>, blankNoCost = false): string => {
+export const formatManaCost = (card: Card | CardFace, manaEmotes: Record<string, string>, blankNoCost = false): string => {
     if(hasNoCost(card)){
         return blankNoCost ? '' : noCostString;
     }
@@ -45,10 +76,10 @@ const formatManaCost = (card: Card | Face, manaEmotes: Record<string, string>, b
     return insertManaSymbols(card.mana_cost, manaEmotes)
 }
 
-export const getCardManaCost = (card: Card, manaEmotes: Record<string, string>): string => {
+export const getCardManaCost = (card: Card | CardFace, manaEmotes: Record<string, string>): string => {
     let cost = '';
-    if(card.card_faces && card.card_faces.length>=1){
-        card.card_faces.forEach((face, i)=> {
+    if(card.object == "card" && card?.card_faces && card.card_faces.length >= 1){
+        (card as Card).card_faces.forEach((face, i)=> {
             if(!hasNoCost(face)){
                 cost = `${cost} ${i > 0 ? faceDelimiter : ''} ${formatManaCost(face, manaEmotes, card.type_line.toLowerCase().includes('land'))}`;
             }
@@ -58,11 +89,11 @@ export const getCardManaCost = (card: Card, manaEmotes: Record<string, string>):
     return formatManaCost(card, manaEmotes, card.type_line.toLowerCase().includes('land'));
 }
 
-export const getCardOracleText = (card: Card | Face, manaEmotes: Record<string, string>) => {
+export const getCardOracleText = (card: Card | CardFace, manaEmotes: Record<string, string>) => {
     let oText = '';
 
-    if(card?.card_faces && card?.card_faces.length>=1){
-        card?.card_faces.forEach((face: Face, i: number)=> {oText = `${oText} ${i > 0 ? `\n------------\n` : ''} ${insertManaSymbols(face.oracle_text, manaEmotes)}`})
+    if(card.object == "card" && card?.card_faces && card?.card_faces.length >= 1){
+        (card as Card)?.card_faces.forEach((face: CardFace, i: number)=> {oText = `${oText} ${i > 0 ? `\n------------\n` : ''} ${insertManaSymbols(face.oracle_text, manaEmotes)}`})
         return oText;
     }
     return insertManaSymbols(card.oracle_text, manaEmotes);

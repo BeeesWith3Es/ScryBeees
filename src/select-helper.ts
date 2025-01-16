@@ -1,5 +1,12 @@
 import {Card} from "scryfall-api";
-import {faceDelimiter, getCardManaCost, getCardStats} from "./card-helpers.js";
+import {
+    dfcSeparatorString,
+    faceDelimiter,
+    formatCardStats,
+    formatManaCost,
+    getCardManaCost,
+    getCardStats
+} from "./card-helpers.js";
 import {APIEmbedField, StringSelectMenuBuilder, StringSelectMenuOptionBuilder} from "discord.js";
 
 export const createOption = (label: string, description: string, value: string, emoji?: string) => {
@@ -16,8 +23,16 @@ const createCardOption = (card: Card, i: number) => {
 }
 
 const createCardField = (card: Card, manaEmotes: Record<string, string>): APIEmbedField => {
-
-    return {name: ` `, value: `**[${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri})** | [${card.set.toUpperCase()}](${card.scryfall_set_uri})\n${getCardManaCost(card, manaEmotes)}\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardStats(card)}`, inline: true}
+    let desc;
+    if(card.card_faces && card.card_faces.length > 1){
+        desc =
+            `**[${card.card_faces[0].name}](${card.scryfall_uri})** | [${card.set.toUpperCase()}](${card.scryfall_set_uri})\n${formatManaCost(card.card_faces[0], manaEmotes)}\n${card.card_faces[0].type_line}\n${formatCardStats(card.card_faces[0])}
+${dfcSeparatorString}
+**${card.card_faces[1].name}** \n${formatManaCost(card.card_faces[1], manaEmotes)}\n${card.card_faces[1].type_line}\n${formatCardStats(card.card_faces[1])}`;
+    } else {
+        desc = `**[${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri})** | [${card.set.toUpperCase()}](${card.scryfall_set_uri})\n${getCardManaCost(card, manaEmotes)}\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardStats(card)}`;
+    }
+    return {name: ` `, value: desc, inline: true}
 }
 
 export const createCardSelectOptions = (cards: Card[]) =>{

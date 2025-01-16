@@ -13,6 +13,7 @@ import {
 import {Card} from "scryfall-api";
 import {CardList} from "./List.js";
 import {
+    dfcSeparatorString,
     faceDelimiter,
     getCardManaCost,
     getCardOracleText,
@@ -136,7 +137,16 @@ export const searchAction = async (message: Message<boolean>, config) => {
     }
 
     const createCardDetailEmbed = (card: Card): EmbedBuilder => {
-        const description = `### [${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri}) ${getCardManaCost(card, config.getManaEmoji())}\n\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardOracleText(card, config.getManaEmoji())}\n\n${getCardStats(card)}`
+        let description: string;
+        if(card.card_faces && card.card_faces.length > 1){
+            description =
+                `### [${card.card_faces[0].name}](${card.scryfall_uri}) ${getCardManaCost(card.card_faces[0], config.getManaEmoji())}\n\n${card.card_faces[0].type_line}\n${getCardOracleText(card.card_faces[0], config.getManaEmoji())}\n\n${getCardStats(card.card_faces[0])}
+${dfcSeparatorString}
+**${card.card_faces[1].name}** ${getCardManaCost(card.card_faces[1], config.getManaEmoji())}\n\n${card.card_faces[1].type_line}\n${getCardOracleText(card.card_faces[1], config.getManaEmoji())}\n\n${getCardStats(card.card_faces[1])}`
+        } else {
+            description = `### [${card.name.replace(/\/\//, faceDelimiter)}](${card.scryfall_uri}) ${getCardManaCost(card, config.getManaEmoji())}\n\n${card.type_line.replace(/\/\//, faceDelimiter)}\n${getCardOracleText(card, config.getManaEmoji())}\n\n${getCardStats(card)}`
+        }
+
         return new EmbedBuilder()
             .setColor(config.botColor)
             .setDescription(description)
