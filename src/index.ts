@@ -20,7 +20,7 @@ const publicDelimiter = '<<';
 
 const options = [helpOption, imageOption, extendedOption, linkOption].join('');
 console.log(`Loaded Options: ${options}`);
-const commandRegex = /<<([?!@&]?)(.*?)>>(@?.*)/gmi;
+const commandRegex = /<<([?!@&]?)(.*?)>>(@\S*)?/gmi;
 
 interface Command {
     queryOption: string;
@@ -70,6 +70,7 @@ export enum OPTIONS {
 }
 
 const getOptions = (optionsString: string) => {
+    if(!optionsString) return [];
     const optionsArray = optionsString.split(optionsSplitter);
     const selectedOptions = [];
     if((optionsArray.length == 2 && optionsArray[0] === optionsArray[1]) || optionsArray.includes(OPTIONS.PRIVATE)){
