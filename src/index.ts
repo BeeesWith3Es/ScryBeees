@@ -87,55 +87,55 @@ botClient.on('ready', (client)=>{
     console.log(`Emoji Loaded at ${new Date()} <:${faeFrog.name}:${faeFrog.id}>`);
     console.log('Mana Emoji Loaded: ', Object.keys(scrybConfig.getManaEmoji())?.length);
 })
-    botClient.on('messageCreate', async (userMessage)=>{
-        try{
-            if(userMessage.author.bot){
-                return;
-            }
-
-            const commandCaptures = [];
-            let regexResult = commandRegex.exec(userMessage.content);
-            while(regexResult != null){
-                commandCaptures.push(regexResult);
-                regexResult = commandRegex.exec(userMessage.content);
-            }
-
-            const commands = commandCaptures.map((capture)=>{
-                const options =  getOptions(capture[3]);
-                return {
-                    queryOption: capture[1],
-                    query: capture[2].trim(),
-                    privateSelect: options.includes(OPTIONS.PRIVATE)
-                } as Command}
-            );
-
-            if(commands.length === 1 && commands[0].queryOption === helpOption){
-                console.log(`${userMessage.author.username}:${userMessage.author.id} asked for help`)
-                helpAction(userMessage, scrybConfig);
-                return;
-            }
-
-                for (const command of commands) {
-                    if(command.queryOption !== helpOption){
-                        console.log(`----------------SEARCH ACTION:----------------`)
-                        console.log(`${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} Eastern`)
-                        console.log(`USER: ${userMessage.author.username}:${userMessage.author.id}`)
-                        console.log(`SERVER: ${userMessage.guild.name}:${userMessage.guild.id}`)
-                        console.log(`QUERY: ${command.query}`)
-                        console.log(`OPTION(PRIVATE?): ${command.queryOption}(${command.privateSelect})`)
-                        try {
-                           await searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
-                        }catch(error){
-                            console.log("\nError during search action\n", `\nName: ${error.name}\nMessage: ${error.message}\nCode: ${error.code}`);
-                        }
-
-                        console.log(`----------------------------------------------\n`)
-                    }
-                }
-
-        }catch(error){
-            console.log("Error during message received\n", `Code: ${error.code}\nMessage: ${error.message}`, '\nMessage:\n', userMessage);
+botClient.on('messageCreate', async (userMessage)=>{
+    try{
+        if(userMessage.author.bot){
+            return;
         }
-    })
+
+        const commandCaptures = [];
+        let regexResult = commandRegex.exec(userMessage.content);
+        while(regexResult != null){
+            commandCaptures.push(regexResult);
+            regexResult = commandRegex.exec(userMessage.content);
+        }
+
+        const commands = commandCaptures.map((capture)=>{
+            const options =  getOptions(capture[3]);
+            return {
+                queryOption: capture[1],
+                query: capture[2].trim(),
+                privateSelect: options.includes(OPTIONS.PRIVATE)
+            } as Command}
+        );
+
+        if(commands.length === 1 && commands[0].queryOption === helpOption){
+            console.log(`${userMessage.author.username}:${userMessage.author.id} asked for help`)
+            helpAction(userMessage, scrybConfig);
+            return;
+        }
+
+            for (const command of commands) {
+                if(command.queryOption !== helpOption){
+                    console.log(`----------------SEARCH ACTION:----------------`)
+                    console.log(`${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} Eastern`)
+                    console.log(`USER: ${userMessage.author.username}:${userMessage.author.id}`)
+                    console.log(`SERVER: ${userMessage.guild.name}:${userMessage.guild.id}`)
+                    console.log(`QUERY: ${command.query}`)
+                    console.log(`OPTION(PRIVATE?): ${command.queryOption}(${command.privateSelect})`)
+                    try {
+                       await searchAction(userMessage, {...scrybConfig, query: command.query, queryOption: command.queryOption, privateSelect: command.privateSelect});
+                    }catch(error){
+                        console.log("\nError during search action\n", `\nName: ${error.name}\nMessage: ${error.message}\nCode: ${error.code}`);
+                    }
+
+                    console.log(`----------------------------------------------\n`)
+                }
+            }
+
+    }catch(error){
+        console.log("Error during message received\n", `Code: ${error.code}\nMessage: ${error.message}`, '\nMessage:\n', userMessage);
+    }
+})
 
 botClient.login(process.env.BOT_TOKEN);

@@ -59,6 +59,17 @@ export const usePagination = (url: string) => {
         }
     };
 
+    const cacheClearTime = 1000 * 60 * 60 * 24 * 5; // 5 Days
+    const clearCron =() => {
+        setTimeout(()=>{
+            console.log(`Clearing Cache with ${Object.keys(pageCache).length} queries`);
+            clearPageCache();
+            clearCron();
+        }, cacheClearTime)
+    }
+
+    clearCron();
+
     const prettyPrintCache = (): string => {
         let print = ''
         Object.entries(pageCache).forEach((query)=>{
